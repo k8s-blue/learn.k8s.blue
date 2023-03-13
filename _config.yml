@@ -1,0 +1,17 @@
+# Dependencies
+markdown:         redcarpet
+highlighter:      pygments
+
+# Permalinks
+permalink:        pretty
+relative_permalinks: false
+
+# Setup
+title: K8s Home Lab
+tagline: Setup your own k8s home-lab cluster with step-by-step instructions
+paginate: 5
+destination: ./docs
+
+# Build settings
+plugins:
+  - jekyll-feed

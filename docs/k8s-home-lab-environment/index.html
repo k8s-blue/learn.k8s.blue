@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+  <head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>
+    
+      Home lab environment &middot; K8s Home Lab
+    
+  </title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/public/css/poole.css">
+  <link rel="stylesheet" href="/public/css/syntax.css">
+  <link rel="stylesheet" href="/public/css/hyde.css">
+  <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-144-precomposed.png">
+                                 <link rel="shortcut icon" href="/public/favicon.ico">
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+</head>
+
+
+  <body>
+
+    <div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <h1>
+        <a href="">
+          K8s Home Lab
+        </a>
+      </h1>
+      <p class="lead">Setup your own k8s home-lab cluster with step-by-step instructions</p>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="sidebar-nav-item" href="/" title="Learn Kubernetes">Home</a>
+
+      
+
+      
+      
+        
+          
+            <a class="sidebar-nav-item active" href="/k8s-home-lab-environment/">Home lab environment</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/os-setup/">OS Setup</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/keepalived/">Keepalived</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/install-cri/">Install CRI</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/k8s-binaries/">Kubernetes binaries</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/cluster-init/">Cluster initialization</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/cluster-cni/">Cluster CNI</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/metallb/">MetalLB</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/ingress/">Ingress config</a>
+          
+        
+      
+        
+          
+        
+      
+        
+          
+        
+      
+        
+          
+        
+      
+        
+      
+        
+      
+
+      <span class="sidebar-nav-item">&nbsp;</span>
+
+      <a class="sidebar-nav-item" href="https://github.com/sergiu-tot/learning.k8s.blue" title="GitHub project">GitHub project</a>
+      <!-- <span class="sidebar-nav-item">Currently v0.1 alpha</span> -->
+    </nav>
+
+    <p>&copy; 2023. All rights reserved.</p>
+  </div>
+</div>
+
+
+    <div class="content container">
+      <div class="page">
+  <h1 class="page-title">Home lab environment</h1>
+  <p>Before starting, we need to know what kind of machines we are going to use, and what network configuration we have.</p>
+
+<p>We are going to install <code class="language-plaintext highlighter-rouge">Kubernetes v1.26</code>, and use <code class="language-plaintext highlighter-rouge">CRI-O 1.26</code> as the Container Runtime.</p>
+
+<p>The name of the cluster is <code class="language-plaintext highlighter-rouge">k8s.blue</code>.</p>
+
+<h2 id="kubernetes-nodes">Kubernetes nodes</h2>
+
+<p>In this kubernetes cluster setup we are going to use three identical virtual machines (<em>physical should be fine also</em>) with the following characteristics:</p>
+
+<table>
+  <tbody>
+    <tr>
+      <td>Operating System</td>
+      <td>Ubuntu 22.04</td>
+    </tr>
+    <tr>
+      <td>Number of vCPU</td>
+      <td>4</td>
+    </tr>
+    <tr>
+      <td>RAM</td>
+      <td>8GB</td>
+    </tr>
+    <tr>
+      <td>Disk space</td>
+      <td>100GB</td>
+    </tr>
+    <tr>
+      <td>Internal NICs</td>
+      <td>1</td>
+    </tr>
+    <tr>
+      <td>External NICs</td>
+      <td>1</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>The internal NICs are going to be used for nodes and pods communication. The external NICs are going to be used for internet access and exposing the services.</p>
+
+<h2 id="network-configuration">Network configuration</h2>
+
+<p>The following IP addresses should be configured on the nodes</p>
+
+<table>
+  <tbody>
+    <tr>
+      <td>Hostname</td>
+      <td>External IP</td>
+      <td>Internal IP</td>
+    </tr>
+    <tr>
+      <td>cp01.k8s.blue</td>
+      <td>192.168.1.201</td>
+      <td>192.168.2.201</td>
+    </tr>
+    <tr>
+      <td>cp02.k8s.blue</td>
+      <td>192.168.1.202</td>
+      <td>192.168.2.202</td>
+    </tr>
+    <tr>
+      <td>cp03.k8s.blue</td>
+      <td>192.168.1.203</td>
+      <td>192.168.2.203</td>
+    </tr>
+  </tbody>
+</table>
+
+<p>All three nodes will have the roles of both <code class="language-plaintext highlighter-rouge">control-plane</code> and <code class="language-plaintext highlighter-rouge">worker</code> nodes.</p>
+
+<blockquote>
+  <p>The <code class="language-plaintext highlighter-rouge">InternalIP</code> refers to the management network, which is used only for the intra-cluster communication. Ideally, this is going to be an isolated network.</p>
+</blockquote>
+
+<p>To make sure that we can access the cluster even if one of the <code class="language-plaintext highlighter-rouge">control-plane</code> nodes is down, we also need a <code class="language-plaintext highlighter-rouge">VIP</code> (<em>handled by keepalived</em>) which will point to a functional node.</p>
+
+<table>
+  <tbody>
+    <tr>
+      <td>Hostname</td>
+      <td>VIP</td>
+    </tr>
+    <tr>
+      <td>cpe.k8s.blue</td>
+      <td>192.168.1.240</td>
+    </tr>
+  </tbody>
+</table>
+
+<blockquote>
+  <p>The DNS records are already configured to use the private IP addresses mentioned, so you can use them for your own setup if your network is configured with the same subnet.</p>
+</blockquote>
+
+</div>
+
+    </div>
+
+  </body>
+</html>

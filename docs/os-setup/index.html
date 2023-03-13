@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+  <head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>
+    
+      OS Setup &middot; K8s Home Lab
+    
+  </title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/public/css/poole.css">
+  <link rel="stylesheet" href="/public/css/syntax.css">
+  <link rel="stylesheet" href="/public/css/hyde.css">
+  <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-144-precomposed.png">
+                                 <link rel="shortcut icon" href="/public/favicon.ico">
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+</head>
+
+
+  <body>
+
+    <div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <h1>
+        <a href="">
+          K8s Home Lab
+        </a>
+      </h1>
+      <p class="lead">Setup your own k8s home-lab cluster with step-by-step instructions</p>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="sidebar-nav-item" href="/" title="Learn Kubernetes">Home</a>
+
+      
+
+      
+      
+        
+          
+            <a class="sidebar-nav-item" href="/k8s-home-lab-environment/">Home lab environment</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item active" href="/os-setup/">OS Setup</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/keepalived/">Keepalived</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/install-cri/">Install CRI</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/k8s-binaries/">Kubernetes binaries</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/cluster-init/">Cluster initialization</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/cluster-cni/">Cluster CNI</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/metallb/">MetalLB</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/ingress/">Ingress config</a>
+          
+        
+      
+        
+          
+        
+      
+        
+          
+        
+      
+        
+          
+        
+      
+        
+      
+        
+      
+
+      <span class="sidebar-nav-item">&nbsp;</span>
+
+      <a class="sidebar-nav-item" href="https://github.com/sergiu-tot/learning.k8s.blue" title="GitHub project">GitHub project</a>
+      <!-- <span class="sidebar-nav-item">Currently v0.1 alpha</span> -->
+    </nav>
+
+    <p>&copy; 2023. All rights reserved.</p>
+  </div>
+</div>
+
+
+    <div class="content container">
+      <div class="page">
+  <h1 class="page-title">OS Setup</h1>
+  <p>Let’s configure the machines to be used as cluster nodes.</p>
+
+<h2 id="set-versions-as-environment-variables">Set versions as environment variables</h2>
+
+<p>This step is added for simplicity. The versions must be set as environment variables, so make sure you run the <code class="language-plaintext highlighter-rouge">export</code>s on all the nodes every time you open a shell instance. Optional, you can add them to the <code class="language-plaintext highlighter-rouge">.bashrc</code> file to be set automatically when you open the terminal.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>export OS=xUbuntu_22.04
+export CRIO_VERSION=1.26
+export K8S_VERSION=1.26.1-00
+</code></pre></div></div>
+
+<h2 id="disable-swap">Disable swap</h2>
+
+<p>For now, kubernetes doesn’t support <code class="language-plaintext highlighter-rouge">swap</code> partitions so we should disable it.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>swapoff -a &amp;&amp; sed -i '/swap/d' /etc/fstab
+</code></pre></div></div>
+
+<h2 id="load-and-configure-kernel-modules">Load and configure kernel modules</h2>
+
+<p>The <code class="language-plaintext highlighter-rouge">br_netfilter</code> and <code class="language-plaintext highlighter-rouge">overlay</code> modules should be present, and loaded at boot time.</p>
+
+<p>Load the modules:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>modprobe br_netfilter
+modprobe overlay
+</code></pre></div></div>
+
+<p>Ensure that the modules are loaded at boot time:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cat &lt;&lt;EOF | sudo tee /etc/modules-load.d/k8s.conf
+br_netfilter
+overlay
+EOF
+</code></pre></div></div>
+
+<p>Configure <code class="language-plaintext highlighter-rouge">br_netfilter</code> to direct bridged packets to iptables, and enable ip forwarding:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cat &lt;&lt;EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.bridge.bridge-nf-call-iptables  = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.ipv4.ip_forward                 = 1
+EOF
+
+sysctl --system
+</code></pre></div></div>
+
+<h2 id="install-packages">Install packages</h2>
+
+<p>Install the dependencies:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt install -y software-properties-common \
+               apt-transport-https        \
+               ca-certificates            \
+               curl                       \
+               dialog                     \
+               git                        \
+               tcpdump                    \
+               wget                       \
+               apt-utils
+</code></pre></div></div>
+
+<p>Update system packages:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt update &amp;&amp; apt -y upgrade &amp;&amp; apt -y autoremove
+</code></pre></div></div>
+
+</div>
+
+    </div>
+
+  </body>
+</html>
