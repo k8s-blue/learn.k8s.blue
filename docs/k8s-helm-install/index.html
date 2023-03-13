@@ -11,7 +11,7 @@
 
   <title>
     
-      Cluster CNI &middot; K8s Home Lab
+      Install helm &middot; K8s Home Lab
     
   </title>
 
@@ -64,31 +64,37 @@
       
         
           
-            <a class="sidebar-nav-item" href="/keepalived/">Keepalived</a>
+            <a class="sidebar-nav-item" href="/k8s-ubuntu-keepalived/">Keepalived</a>
           
         
       
         
           
-            <a class="sidebar-nav-item" href="/install-cri/">Install CRI</a>
+            <a class="sidebar-nav-item" href="/install-crio/">Install CRI-O</a>
           
         
       
         
           
-            <a class="sidebar-nav-item" href="/k8s-binaries/">Kubernetes binaries</a>
+            <a class="sidebar-nav-item" href="/k8s-kubeadm-kubelet-kubectl/">Kubernetes binaries</a>
           
         
       
         
           
-            <a class="sidebar-nav-item" href="/cluster-init/">Cluster initialization</a>
+            <a class="sidebar-nav-item" href="/k8s-cluster-initialization/">Cluster initialization</a>
           
         
       
         
           
-            <a class="sidebar-nav-item active" href="/cluster-cni/">Cluster CNI</a>
+            <a class="sidebar-nav-item" href="/k8s-cni-flannel-weave/">Cluster CNI</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item active" href="/k8s-helm-install/">Install helm</a>
           
         
       
@@ -134,8 +140,31 @@
 
     <div class="content container">
       <div class="page">
-  <h1 class="page-title">Cluster CNI</h1>
-  <p>Install cluster CNI</p>
+  <h1 class="page-title">Install helm</h1>
+  <p><code class="language-plaintext highlighter-rouge">Helm</code> for kubernetes is similar to a package manager, except that it deploys services and containerized applications instead of installing local services and files.</p>
+
+<p>Though it is not mandatory to have it, it comes in handy for managing deployments.</p>
+
+<p>For Ubuntu we can use the package manager to install it. First, add the signing keys:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | sudo tee /usr/share/keyrings/helm.gpg &gt; /dev/null
+</code></pre></div></div>
+
+<p>Add the helm repository:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | sudo tee /etc/apt/sources.list.d/helm-stable-debian.list
+</code></pre></div></div>
+
+<p>Refresh the package list, and install helm:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt update
+apt install helm
+</code></pre></div></div>
+
+<p>As a quick-and-dirty alternative, helm can be installed directly using a shell script:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+</code></pre></div></div>
 
 </div>
 

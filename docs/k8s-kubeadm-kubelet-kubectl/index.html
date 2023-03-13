@@ -11,7 +11,7 @@
 
   <title>
     
-      Cluster initialization &middot; K8s Home Lab
+      Kubernetes binaries &middot; K8s Home Lab
     
   </title>
 
@@ -64,31 +64,37 @@
       
         
           
-            <a class="sidebar-nav-item" href="/keepalived/">Keepalived</a>
+            <a class="sidebar-nav-item" href="/k8s-ubuntu-keepalived/">Keepalived</a>
           
         
       
         
           
-            <a class="sidebar-nav-item" href="/install-cri/">Install CRI</a>
+            <a class="sidebar-nav-item" href="/install-crio/">Install CRI-O</a>
           
         
       
         
           
-            <a class="sidebar-nav-item" href="/k8s-binaries/">Kubernetes binaries</a>
+            <a class="sidebar-nav-item active" href="/k8s-kubeadm-kubelet-kubectl/">Kubernetes binaries</a>
           
         
       
         
           
-            <a class="sidebar-nav-item active" href="/cluster-init/">Cluster initialization</a>
+            <a class="sidebar-nav-item" href="/k8s-cluster-initialization/">Cluster initialization</a>
           
         
       
         
           
-            <a class="sidebar-nav-item" href="/cluster-cni/">Cluster CNI</a>
+            <a class="sidebar-nav-item" href="/k8s-cni-flannel-weave/">Cluster CNI</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/k8s-helm-install/">Install helm</a>
           
         
       
@@ -134,8 +140,35 @@
 
     <div class="content container">
       <div class="page">
-  <h1 class="page-title">Cluster initialization</h1>
-  <p>Cluster initialization</p>
+  <h1 class="page-title">Kubernetes binaries</h1>
+  <p>Now we need to install the binaries required for the kubernetes deployment:</p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">kubeadm</code> - CLI tool for initializing kubernetes clusters</li>
+  <li><code class="language-plaintext highlighter-rouge">kubectl</code> - CLI tool for interacting with kubernetes</li>
+  <li><code class="language-plaintext highlighter-rouge">kubelet</code> - kubernetes node agent service that interacts with the API server and the local container runtime</li>
+</ul>
+
+<p>First, download the Google Cloud public signing key:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>curl -fsSLo /etc/apt/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+</code></pre></div></div>
+
+<p>Next, add the kubernetes repositories:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" &gt;&gt; /etc/apt/sources.list.d/kubernetes.list
+</code></pre></div></div>
+
+<p>Now install the packages, and mark them as not upgradable:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt update
+apt install -y kubelet=${K8S_VERSION} kubeadm=${K8S_VERSION} kubectl=${K8S_VERSION}
+apt-mark hold kubelet kubeadm kubectl
+</code></pre></div></div>
+
+<p>As an extra step, we can fetch the images - if not, they will be fetch automatically when we initialize the cluster. This is a good step to keep in mind if your cluster is not going to have internet access after the deployment.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubeadm config images pull
+</code></pre></div></div>
 
 </div>
 

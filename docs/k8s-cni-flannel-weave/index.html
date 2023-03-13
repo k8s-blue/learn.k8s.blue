@@ -11,7 +11,7 @@
 
   <title>
     
-      Kubernetes binaries &middot; K8s Home Lab
+      Cluster CNI &middot; K8s Home Lab
     
   </title>
 
@@ -64,31 +64,37 @@
       
         
           
-            <a class="sidebar-nav-item" href="/keepalived/">Keepalived</a>
+            <a class="sidebar-nav-item" href="/k8s-ubuntu-keepalived/">Keepalived</a>
           
         
       
         
           
-            <a class="sidebar-nav-item" href="/install-cri/">Install CRI</a>
+            <a class="sidebar-nav-item" href="/install-crio/">Install CRI-O</a>
           
         
       
         
           
-            <a class="sidebar-nav-item active" href="/k8s-binaries/">Kubernetes binaries</a>
+            <a class="sidebar-nav-item" href="/k8s-kubeadm-kubelet-kubectl/">Kubernetes binaries</a>
           
         
       
         
           
-            <a class="sidebar-nav-item" href="/cluster-init/">Cluster initialization</a>
+            <a class="sidebar-nav-item" href="/k8s-cluster-initialization/">Cluster initialization</a>
           
         
       
         
           
-            <a class="sidebar-nav-item" href="/cluster-cni/">Cluster CNI</a>
+            <a class="sidebar-nav-item active" href="/k8s-cni-flannel-weave/">Cluster CNI</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/k8s-helm-install/">Install helm</a>
           
         
       
@@ -134,8 +140,26 @@
 
     <div class="content container">
       <div class="page">
-  <h1 class="page-title">Kubernetes binaries</h1>
-  <p>Install kubernetes binaries</p>
+  <h1 class="page-title">Cluster CNI</h1>
+  <p>For the services and pods to communicate with each other we need to use a Container Network Interface (CNI). This will define an intra-cluster network on top of the physical network.</p>
+
+<p>There are multiple CNIs available, two of them being <code class="language-plaintext highlighter-rouge">flannel</code> and <code class="language-plaintext highlighter-rouge">weave</code>.</p>
+
+<h2 id="install-flannel">Install flannel</h2>
+
+<p>Probably the lightest CNI available is <code class="language-plaintext highlighter-rouge">flannel</code>. It is one of the first CNIs developed, so it’s code is mature and stable - though not very rich in features.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl apply -f https://github.com/coreos/flannel/raw/master/Documentation/kube-flannel.yml
+</code></pre></div></div>
+
+<h2 id="install-weave-net">Install Weave Net</h2>
+
+<p>Weave is a CNI developed by Weaveworks. A big plus is that it brings advanced features, like <code class="language-plaintext highlighter-rouge">NetworkPolicy</code>:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubectl apply -f https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
+</code></pre></div></div>
+
+<p>You can chose any CNI that makes sense for your environment, but usually for a home lab there’s not much difference between them.</p>
 
 </div>
 

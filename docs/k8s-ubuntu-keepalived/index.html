@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+  <head>
+  <link href="http://gmpg.org/xfn/11" rel="profile">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+  <!-- Enable responsiveness on mobile devices-->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+  <title>
+    
+      Keepalived &middot; K8s Home Lab
+    
+  </title>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/public/css/poole.css">
+  <link rel="stylesheet" href="/public/css/syntax.css">
+  <link rel="stylesheet" href="/public/css/hyde.css">
+  <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=PT+Sans:400,400italic,700|Abril+Fatface">
+
+  <!-- Icons -->
+  <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/public/apple-touch-icon-144-precomposed.png">
+                                 <link rel="shortcut icon" href="/public/favicon.ico">
+
+  <!-- RSS -->
+  <link rel="alternate" type="application/rss+xml" title="RSS" href="/atom.xml">
+</head>
+
+
+  <body>
+
+    <div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      <h1>
+        <a href="">
+          K8s Home Lab
+        </a>
+      </h1>
+      <p class="lead">Setup your own k8s home-lab cluster with step-by-step instructions</p>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a class="sidebar-nav-item" href="/" title="Learn Kubernetes">Home</a>
+
+      
+
+      
+      
+        
+          
+            <a class="sidebar-nav-item" href="/k8s-home-lab-environment/">Home lab environment</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/os-setup/">OS Setup</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item active" href="/k8s-ubuntu-keepalived/">Keepalived</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/install-crio/">Install CRI-O</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/k8s-kubeadm-kubelet-kubectl/">Kubernetes binaries</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/k8s-cluster-initialization/">Cluster initialization</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/k8s-cni-flannel-weave/">Cluster CNI</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/k8s-helm-install/">Install helm</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/metallb/">MetalLB</a>
+          
+        
+      
+        
+          
+            <a class="sidebar-nav-item" href="/ingress/">Ingress config</a>
+          
+        
+      
+        
+          
+        
+      
+        
+          
+        
+      
+        
+          
+        
+      
+        
+      
+        
+      
+
+      <span class="sidebar-nav-item">&nbsp;</span>
+
+      <a class="sidebar-nav-item" href="https://github.com/sergiu-tot/learning.k8s.blue" title="GitHub project">GitHub project</a>
+      <!-- <span class="sidebar-nav-item">Currently v0.1 alpha</span> -->
+    </nav>
+
+    <p>&copy; 2023. All rights reserved.</p>
+  </div>
+</div>
+
+
+    <div class="content container">
+      <div class="page">
+  <h1 class="page-title">Keepalived</h1>
+  <p>When running the <code class="language-plaintext highlighter-rouge">kubectl</code> command, the CLI will connect to the kubernetes <code class="language-plaintext highlighter-rouge">control-plane</code> node specified in the kubernetes context (<em>usually located in the <code class="language-plaintext highlighter-rouge">~/.kube/config</code> file</em>). As we have three nodes, and all of them have the <code class="language-plaintext highlighter-rouge">control-plane</code> role we want to make sure that if one node is down the request will be sent to another node that is up and running.</p>
+
+<p>For this we are going to use a <strong>VIP</strong> (Virtual IP). The VIP will be configured in all the nodes, but it will be active only on one of them - the functional node with the highest priority. The configuration is going to be handled by <code class="language-plaintext highlighter-rouge">keepalived</code>, a tool based on <code class="language-plaintext highlighter-rouge">VRRP</code> that will constantly check the health of the nodes and when the node that has the VIP active is not answering, one of the other nodes will rise the VIP on it’s interface.</p>
+
+<h2 id="install-keepalived">Install keepalived</h2>
+
+<p>In Ubuntu 22.04 the <code class="language-plaintext highlighter-rouge">keepalived</code> is present in the repositories, so we can install it directly:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>apt install -y keepalived
+</code></pre></div></div>
+
+<h2 id="configure-keepalived">Configure keepalived</h2>
+
+<p>Once it’s installed, we add the configuration to each node:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cat &lt;&lt;EOF | tee -a /etc/keepalived/keepalived.conf
+vrrp_instance VI_1 {
+        state MASTER
+        interface enp1s0
+        virtual_router_id 51
+        priority 255
+        advert_int 1
+        authentication {
+              auth_type PASS
+              auth_pass 12345
+        }
+        virtual_ipaddress {
+              192.168.1.240/24
+        }
+}
+EOF
+</code></pre></div></div>
+
+<blockquote>
+  <p>Make sure that the <code class="language-plaintext highlighter-rouge">interface</code> is corresponding to the external interface of your machines</p>
+</blockquote>
+
+<blockquote>
+  <p><code class="language-plaintext highlighter-rouge">priority</code> should be different between the machines, and the <code class="language-plaintext highlighter-rouge">keepalived</code> service that is up and has the highest priority will activate the VIP</p>
+</blockquote>
+
+<h2 id="enable-and-start-keepalived">Enable and start keepalived</h2>
+
+<p>Once the service is configured on all the <code class="language-plaintext highlighter-rouge">control-plane</code> nodes, we can enable and start it</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>systemctl enable keepalived &amp;&amp; systemctl start keepalived
+</code></pre></div></div>
+
+<h2 id="check-the-functionality">Check the functionality</h2>
+
+<p>To check the functionality of <code class="language-plaintext highlighter-rouge">keepalived</code> we can use <code class="language-plaintext highlighter-rouge">tcpdump</code>. Run the following command in one of the nodes:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>tcpdump proto 112
+</code></pre></div></div>
+
+<p>The result should be similar to this:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>root@node01:~# tcpdump proto 112
+tcpdump: verbose output suppressed, use -v[v]... for full protocol decode
+listening on enp1s0, link-type EN10MB (Ethernet), snapshot length 262144 bytes
+09:04:59.552340 IP 192.168.1.251 &gt; vrrp.mcast.net: VRRPv2, Advertisement, vrid 51, prio 255, authtype simple, intvl 1s, length 20
+09:05:00.552571 IP 192.168.1.251 &gt; vrrp.mcast.net: VRRPv2, Advertisement, vrid 51, prio 255, authtype simple, intvl 1s, length 20
+09:05:01.552793 IP 192.168.1.251 &gt; vrrp.mcast.net: VRRPv2, Advertisement, vrid 51, prio 255, authtype simple, intvl 1s, length 20
+3 packets captured
+3 packets received by filter
+0 packets dropped by kernel
+root@node01:~#
+</code></pre></div></div>
+
+<p>Here we can see that the node that currently has the VIP active is <code class="language-plaintext highlighter-rouge">192.168.1.251</code> (cp01).</p>
+
+<p>To move the test a bit further, we can reboot the <code class="language-plaintext highlighter-rouge">cp01</code> node, and the advertisement should start on the next node according to the priorities.</p>
+
+</div>
+
+    </div>
+
+  </body>
+</html>

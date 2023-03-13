@@ -11,7 +11,7 @@
 
   <title>
     
-      Ingress config &middot; K8s Home Lab
+      Cluster initialization &middot; K8s Home Lab
     
   </title>
 
@@ -82,7 +82,7 @@
       
         
           
-            <a class="sidebar-nav-item" href="/k8s-cluster-initialization/">Cluster initialization</a>
+            <a class="sidebar-nav-item active" href="/k8s-cluster-initialization/">Cluster initialization</a>
           
         
       
@@ -106,7 +106,7 @@
       
         
           
-            <a class="sidebar-nav-item active" href="/ingress/">Ingress config</a>
+            <a class="sidebar-nav-item" href="/ingress/">Ingress config</a>
           
         
       
@@ -140,8 +140,59 @@
 
     <div class="content container">
       <div class="page">
-  <h1 class="page-title">Ingress config</h1>
-  <p>Operating System setup</p>
+  <h1 class="page-title">Cluster initialization</h1>
+  <p>Now we need to use one of the <code class="language-plaintext highlighter-rouge">control-plane</code> nodes to initialize the cluster.</p>
+
+<p>First, we create the initialization file:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>cat &lt;&lt;EOF | sudo tee ~/kubeadm-config.yaml
+---
+kind: ClusterConfiguration
+apiVersion: kubeadm.k8s.io/v1beta3
+kubernetesVersion: stable
+controlPlaneEndpoint: "cpe.k8s.blue:6443"
+clusterName: "k8s-blue"
+networking:
+  dnsDomain: k8s.blue
+  podSubnet: 10.233.64.0/18
+  serviceSubnet: 10.233.0.0/18
+apiServer:
+  extraArgs:
+    authorization-mode: "Node,RBAC"
+    bind-address: 0.0.0.0
+---
+kind: KubeletConfiguration
+apiVersion: kubelet.config.k8s.io/v1beta1
+cgroupDriver: systemd
+...
+
+EOF
+</code></pre></div></div>
+
+<p>Now we can initalize the cluster using the <code class="language-plaintext highlighter-rouge">kubeadm-config.yaml</code> file:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubeadm init --config kubeadm-config.yaml
+</code></pre></div></div>
+
+<p>To avoid copying around the k8s certificates, we can temporarily (2h) upload them to the cluster. The secrets will be saved in a secret named <code class="language-plaintext highlighter-rouge">kubeadm-certs</code> and after running the command we are going to receive a certificate key that we’ll use to join the other nodes:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>kubeadm init phase upload-certs --upload-certs
+</code></pre></div></div>
+
+<p>The cluster should be functional at this point, though the deployment is not yet completed. Now we are going to save the <code class="language-plaintext highlighter-rouge">/etc/kubernetes/admin.conf</code> file in the home directory as <code class="language-plaintext highlighter-rouge">~/.kube/config</code>. This is the default path where the <code class="language-plaintext highlighter-rouge">kubectl</code> is looking for the config files:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>mkdir -p $HOME/.kube
+cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+chown $(id -u):$(id -g) $HOME/.kube/config
+</code></pre></div></div>
+
+<p>Now we should be able to run some basic commands like:</p>
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">kubectl version --short</code> - to check the cluster version</li>
+  <li><code class="language-plaintext highlighter-rouge">kubectl get nodes</code> - to see the node details</li>
+  <li><code class="language-plaintext highlighter-rouge">kubectl get pods -A</code> - to see all the pods deployed</li>
+</ul>
+
 
 </div>
 
